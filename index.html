@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ed<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -254,5 +254,12 @@
 
         window.onload = renderizar;
     </script>
+
+    <script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 </body>
+
 </html>
