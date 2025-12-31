@@ -1,1 +1,15 @@
-
+{
+  "name": "Relatório de Turno",
+  "short_name": "RelTurno",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/4345/4345638.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
