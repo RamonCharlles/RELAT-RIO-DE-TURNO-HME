@@ -54,12 +54,12 @@
         const CACHE_KEY = "relatorio_operacional_v1";
 
         const frotas = {
-            "JUMBOS": ["JB01-","JB02-","JB04-","JB05-"],
-            "SIMBAS": ["SB01-","SB02-","SB04-"],
-            "LHDS": ["CG01-","CG04-","CG08-"],
-            "CARREGADEIRAS CONVENCIONAIS": ["CG02-","CG07-"],
-            "CAMINHÕES": ["CE06-","CE07-","CE08-","CE09-","CE10-","CE11-","CE12-","CE13-"],
-            "APOIO": ["Trator TE01","Retroescavadeira RT03","Retroescavadeira RT05","Retroescavadeira RT06","Manipuladora MT04","Manipuladora MT05", "Manipuladora MT06", "Manipuladora MT07", "Motoniveladora MN01"]
+            "JUMBOS": ["JB01","JB02","JB04","JB05"],
+            "SIMBAS": ["SB01","SB02","SB04"],
+            "LHDS": ["CG01","CG04","CG08"],
+            "CARREGADEIRAS CONVENCIONAIS": ["CG02","CG07"],
+            "CAMINHÕES": ["CE06","CE07","CE08","CE09","CE10","CE11"],
+            "APOIO": ["TE01","RT03","RT05","RT06","MT04","MT05", "MT06", "MT07", "MN01"]
         };
 
         const metasDF = { "JUMBOS": 80, "SIMBAS": 70, "CARREGADEIRAS": 70, "CAMINHÕES": 75, "LHDS": 70, "APOIO": 85 };
@@ -340,7 +340,7 @@
                 });
 
                 let mediaFrota = somaDF / equipsFr.length;
-                msg += `🔹 *FROTA: ${fr}*\n*MÉDIA DF: ${mediaFrota.toFixed(1)}%* (Meta: ${meta}%)\n`;
+                msg += `*FROTA: ${fr}*\n*MÉDIA DF: ${mediaFrota.toFixed(1)}%* (Meta: ${meta}%)\n`;
                 msg += corpoFrota + `\n`;
             });
 
