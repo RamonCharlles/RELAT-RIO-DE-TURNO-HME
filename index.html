@@ -50,217 +50,187 @@ ed<!DOCTYPE html>
     </div>
 
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRq4RwoWzsF2hMZNFEaQogtOChN_zKwz5gPXsPGknpm17T49xYi08MYkQbzDp4sSPX1Q/exec";
-        
-        const frotas = {
-            "JUMBOS": ["JB01-","JB02-","JB04-","JB05-"],
-            "SIMBAS": ["SB01-","SB02-","SB04-"],
-            "LHDS": ["CG01-","CG04-","CG08-"],
-            "CARREGADEIRAS CONVENCIONAIS": ["CG02-","CG07-"],
-            "CAMINHÕES": ["CE06-","CE07-","CE08-","CE09-","CE10-","CE11-","CE12-","CE13-"],
-            "APOIO": ["Trator TE01","Retroescavadeira RT03","Retroescavadeira RT05","Retroescavadeira RT06","Manipuladora MT04","Manipuladora MT05", "Manipuladora MT06", "Manipuladora MT07", "Motoniveladora MN01"]
-        };
+       const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxRq4RwoWzsF2hMZNFEaQogtOChN_zKwz5gPXsPGknpm17T49xYi08MYkQbzDp4sSPX1Q/exec";
 
-        const metasDF = { "JUMBOS": 80, "SIMBAS": 70, "CARREGADEIRAS": 70, "CAMINHÕES": 75, "LHDS": 70, "APOIO": 85 };
-        const limitesTurno = { "T1": { i: "07:00", f: "15:00" }, "T2": { i: "15:00", f: "23:00" }, "T3": { i: "23:00", f: "07:00" } };
+const frotas = {
+    "JUMBOS": ["JB01-", "JB02-", "JB04-", "JB05-"],
+    "SIMBAS": ["SB01-", "SB02-", "SB04-"],
+    "LHDS": ["CG01-", "CG04-", "CG08-"],
+    "CARREGADEIRAS CONVENCIONAIS": ["CG02-", "CG07-"],
+    "CAMINHÕES": ["CE06-", "CE07-", "CE08-", "CE09-", "CE10-", "CE11-", "CE12-", "CE13-"],
+    "APOIO": ["Trator TE01", "Retroescavadeira RT03", "Retroescavadeira RT05", "Retroescavadeira RT06", "Manipuladora MT04", "Manipuladora MT05", "Manipuladora MT06", "Manipuladora MT07", "Motoniveladora MN01"]
+};
 
-        document.getElementById('dataTurno').valueAsDate = new Date();
+const metasDF = { "JUMBOS": 80, "SIMBAS": 70, "CARREGADEIRAS": 70, "CAMINHÕES": 75, "LHDS": 70, "APOIO": 85 };
+const limitesTurno = { "T1": { i: "07:00", f: "15:00" }, "T2": { i: "15:00", f: "23:00" }, "T3": { i: "23:00", f: "07:00" } };
 
-        function renderizar() {
-            const container = document.getElementById('listaEquipamentos');
-            container.innerHTML = ''; 
-            let globalIdx = 0;
+// --- FUNÇÕES DE PERSISTÊNCIA (STORAGE) ---
 
-            for (let frota in frotas) {
-                container.innerHTML += `<h2 class="text-blue-500 font-black text-xs mt-6 mb-2 border-l-4 border-blue-500 pl-2 uppercase italic"><i class="fas fa-layer-group mr-2"></i>${frota}</h2>`;
-                frotas[frota].forEach((eq) => {
-                    container.innerHTML += `
-                        <div class="border border-slate-700 rounded-xl p-4 bg-slate-800/40 equip-card mb-4" data-equip="${eq}" data-frota="${frota}">
-                            <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4 gap-2">
-                                <h3 class="font-black text-white text-sm uppercase tracking-wider whitespace-nowrap">${eq}</h3>
-                                <div class="flex flex-col flex-1 items-end gap-2">
-                                    <select onchange="toggleMotivoStatus(this)" class="status-geral bg-slate-900 p-2 rounded font-bold text-[10px] border border-slate-700 text-white w-full max-w-[150px]">
-                                        <option value="Disponível">✅ Disponível</option>
-                                        <option value="Preventiva/PitStop">🛠️ Preventiva/PitStop</option>
-                                        <option value="Corretiva">❌ Corretiva</option>
-                                        <option value="Manutenção Externa">🚨 Serviço Externo</option>
-                                    </select>
-                                    <input type="text" placeholder="Qual o motivo do status? *" class="input-motivo-status hidden w-full bg-slate-900 p-2 rounded text-[10px] border border-amber-500 text-white outline-none">
-                                </div>
-                            </div>
-                            <div id="paradas-${globalIdx}" class="space-y-4"></div>
-                            <button type="button" onclick="addParada(${globalIdx})" class="mt-4 text-[10px] font-bold bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded flex items-center gap-2 transition shadow-md uppercase">
-                                <i class="fas fa-plus-circle"></i> Iniciar Intervenção
-                            </button>
-                        </div>
-                    `;
-                    globalIdx++;
-                });
-            }
-        }
+function salvarProgresso() {
+    const dadosParaSalvar = {
+        cabecalho: {
+            data: document.getElementById('dataTurno').value,
+            turno: document.getElementById('turno').value,
+            letra: document.getElementById('letra').value,
+            operador: document.getElementById('operador').value
+        },
+        equipamentos: []
+    };
 
-        function toggleMotivoStatus(select) {
-            const inputMotivo = select.parentElement.querySelector('.input-motivo-status');
-            if(select.value === "Corretiva" || select.value === "Manutenção Externa") {
+    document.querySelectorAll('.equip-card').forEach(card => {
+        const paradas = [];
+        card.querySelectorAll('.parada-item').forEach(p => {
+            paradas.push({
+                h_ini: p.querySelector('.h-ini').value,
+                h_fim: p.querySelector('.h-fim').value,
+                hor: p.querySelector('.horimetro').value,
+                maint: p.querySelector('.maint-status').value,
+                motivo: p.querySelector('.motivo').value,
+                causa: p.querySelector('.causa').value,
+                acao: p.querySelector('.acao').value,
+                obs: p.querySelector('.obs').value
+            });
+        });
+
+        dadosParaSalvar.equipamentos.push({
+            id: card.getAttribute('data-equip'),
+            status: card.querySelector('.status-geral').value,
+            motivoStatus: card.querySelector('.input-motivo-status').value,
+            paradas: paradas
+        });
+    });
+
+    localStorage.setItem('relatorio_operacional_cache', JSON.stringify(dadosParaSalvar));
+}
+
+function carregarProgresso() {
+    const cache = localStorage.getItem('relatorio_operacional_cache');
+    if (!cache) return;
+
+    const dados = JSON.parse(cache);
+    
+    // Restaurar Cabeçalho
+    document.getElementById('dataTurno').value = dados.cabecalho.data;
+    document.getElementById('turno').value = dados.cabecalho.turno;
+    document.getElementById('letra').value = dados.cabecalho.letra;
+    document.getElementById('operador').value = dados.cabecalho.operador;
+
+    // Restaurar Equipamentos e Paradas
+    dados.equipamentos.forEach((dadosEq, idx) => {
+        const card = document.querySelector(`[data-equip="${dadosEq.id}"]`);
+        if (card) {
+            card.querySelector('.status-geral').value = dadosEq.status;
+            const inputMotivo = card.querySelector('.input-motivo-status');
+            inputMotivo.value = dadosEq.motivoStatus;
+            
+            // Mostrar input de motivo se necessário
+            if(dadosEq.status === "Corretiva" || dadosEq.status === "Manutenção Externa") {
                 inputMotivo.classList.remove('hidden');
-            } else {
-                inputMotivo.classList.add('hidden');
-                inputMotivo.value = "";
             }
-        }
 
-        function addParada(idx) {
-            const container = document.getElementById(`paradas-${idx}`);
-            const div = document.createElement('div');
-            div.className = "bg-slate-900 p-4 rounded-lg border-l-4 border-amber-500 relative mt-2 parada-item";
-            div.innerHTML = `
-                <button type="button" onclick="this.parentElement.remove()" class="absolute top-2 right-2 text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
-                <div class="grid grid-cols-3 gap-2 mb-3">
-                    <div><label class="text-[9px] font-bold text-slate-500 uppercase">Início</label>
-                    <input type="time" class="h-ini w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs"></div>
-                    <div><label class="text-[9px] font-bold text-slate-500 uppercase">Fim</label>
-                    <input type="time" class="h-fim w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs"></div>
-                    <div><label class="text-[9px] font-bold text-slate-500 uppercase">Horímetro</label>
-                    <input type="number" step="0.1" class="horimetro w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs" placeholder="0.0"></div>
-                </div>
-                <select class="maint-status w-full p-2 mb-2 bg-slate-800 border border-slate-700 rounded text-white text-[10px]">
-                    <option value="Concluído">✅ Concluído</option>
-                    <option value="Em Diagnóstico">🔍 Em Diagnóstico</option>
-                    <option value="Em Execução">🛠️ Em Execução</option>
-                    <option value="Aguardando Peça">📦 Aguardando Peça</option>
-                </select>
-                <div class="grid grid-cols-1 gap-2">
-                    <input type="text" class="motivo p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Motivo da Parada *">
-                    <input type="text" class="causa p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Causa Aparente *">
-                    <input type="text" class="acao p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Ação Imediata *">
-                    <textarea class="obs p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Observações Complementares"></textarea>
-                </div>
-            `;
-            container.appendChild(div);
-        }
-
-        function estaNoRange(h, t) {
-            if (t === "T3") return (h >= "23:00" || h <= "07:00");
-            return (h >= limitesTurno[t].i && h <= limitesTurno[t].f);
-        }
-
-        async function enviarTudo() {
-            const op = document.getElementById('operador').value;
-            const dt = document.getElementById('dataTurno').value;
-            const turnoSel = document.getElementById('turno').value;
-            if(!dt || !op) return alert("Preencha Data e Responsável!");
-
-            const logs = [];
-            let valid = true;
-            let msgErro = "";
-
-            document.querySelectorAll('.equip-card').forEach(card => {
-                const eq = card.getAttribute('data-equip'), fr = card.getAttribute('data-frota'), st = card.querySelector('.status-geral').value;
-                const motivoStatus = card.querySelector('.input-motivo-status').value;
-                const paradas = card.querySelectorAll('.parada-item');
-
-                if((st === "Corretiva" || st === "Manutenção Externa") && !motivoStatus) {
-                    valid = false;
-                    msgErro = `Informe o motivo do status para o equipamento ${eq}`;
-                }
-
-                if (paradas.length === 0) {
-                    logs.push({ data: dt, equip: eq, frota: fr, status: st, h_ini: '-', h_fim: '-', horimetro: '-', motivo: motivoStatus || '-', causa: '-', acao: '-', maint_status: '-', obs: '-', turno: turnoSel, letra: document.getElementById('letra').value, op: op });
-                } else {
-                    paradas.forEach(p => {
-                        const h1 = p.querySelector('.h-ini').value, h2 = p.querySelector('.h-fim').value;
-                        const m = p.querySelector('.motivo').value, c = p.querySelector('.causa').value, a = p.querySelector('.acao').value;
-                        const hor = p.querySelector('.horimetro').value || "-";
-                        
-                        if(!h1 || !h2 || !m || !c || !a) { valid = false; msgErro = "Campos obrigatórios de intervenção vazios!"; }
-                        if(!estaNoRange(h1, turnoSel) || !estaNoRange(h2, turnoSel)) { valid = false; msgErro = `Hora fora do turno em ${eq}`; }
-                        
-                        logs.push({ 
-                            data: dt, equip: eq, frota: fr, status: st, 
-                            h_ini: h1, h_fim: h2, horimetro: hor, motivo: m, causa: c, acao: a, 
-                            maint_status: p.querySelector('.maint-status').value, 
-                            obs: p.querySelector('.obs').value || "N/A", 
-                            turno: turnoSel, letra: document.getElementById('letra').value, op: op 
-                        });
-                    });
-                }
+            // Recriar cada parada
+            dadosEq.paradas.forEach(p => {
+                const paradaDiv = addParada(idx); // Chama a função que já existe
+                paradaDiv.querySelector('.h-ini').value = p.h_ini;
+                paradaDiv.querySelector('.h-fim').value = p.h_fim;
+                paradaDiv.querySelector('.horimetro').value = p.hor;
+                paradaDiv.querySelector('.maint-status').value = p.maint;
+                paradaDiv.querySelector('.motivo').value = p.motivo;
+                paradaDiv.querySelector('.causa').value = p.causa;
+                paradaDiv.querySelector('.acao').value = p.acao;
+                paradaDiv.querySelector('.obs').value = p.obs;
             });
-
-            if(!valid) return alert(msgErro);
-
-            const btn = document.getElementById('btnFinalizar');
-            btn.disabled = true;
-            btn.innerHTML = "ENVIANDO...";
-
-            try {
-                await fetch(WEB_APP_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(logs) });
-                gerarWhats(logs);
-                setTimeout(() => location.reload(), 3000);
-            } catch (e) { gerarWhats(logs); }
         }
+    });
+}
 
-        function gerarWhats(logs) {
-            const dataFmt = new Date(document.getElementById('dataTurno').value + 'T00:00:00').toLocaleDateString('pt-BR');
-            let msg = `*📊 RELATÓRIO OPERACIONAL - ${dataFmt}*\n*TURNO:* ${document.getElementById('turno').value} | *LETRA:* ${document.getElementById('letra').value}\n*RESP:* ${document.getElementById('operador').value}\n--------------------------------\n\n`;
+// --- FUNÇÕES DE RENDERIZAÇÃO E LÓGICA ---
 
-            const frotasUnicas = [...new Set(logs.map(l => l.frota))];
+function renderizar() {
+    const container = document.getElementById('listaEquipamentos');
+    container.innerHTML = '';
+    let globalIdx = 0;
 
-            frotasUnicas.forEach(fr => {
-                const meta = metasDF[fr] || 70;
-                const equipsFr = [...new Set(logs.filter(l => l.frota === fr).map(l => l.equip))];
-                let somaDF = 0;
-                let corpoFrota = "";
+    for (let frota in frotas) {
+        container.innerHTML += `<h2 class="text-blue-500 font-black text-xs mt-6 mb-2 border-l-4 border-blue-500 pl-2 uppercase italic"><i class="fas fa-layer-group mr-2"></i>${frota}</h2>`;
+        frotas[frota].forEach((eq) => {
+            container.innerHTML += `
+                <div class="border border-slate-700 rounded-xl p-4 bg-slate-800/40 equip-card mb-4" data-equip="${eq}" data-frota="${frota}">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-3 mb-4 gap-2">
+                        <h3 class="font-black text-white text-sm uppercase tracking-wider whitespace-nowrap">${eq}</h3>
+                        <div class="flex flex-col flex-1 items-end gap-2">
+                            <select onchange="toggleMotivoStatus(this); salvarProgresso()" class="status-geral bg-slate-900 p-2 rounded font-bold text-[10px] border border-slate-700 text-white w-full max-w-[150px]">
+                                <option value="Disponível">✅ Disponível</option>
+                                <option value="Preventiva/PitStop">🛠️ Preventiva/PitStop</option>
+                                <option value="Corretiva">❌ Corretiva</option>
+                                <option value="Manutenção Externa">🚨 Serviço Externo</option>
+                            </select>
+                            <input type="text" oninput="salvarProgresso()" placeholder="Qual o motivo do status? *" class="input-motivo-status hidden w-full bg-slate-900 p-2 rounded text-[10px] border border-amber-500 text-white outline-none">
+                        </div>
+                    </div>
+                    <div id="paradas-${globalIdx}" class="space-y-4"></div>
+                    <button type="button" onclick="addParada(${globalIdx})" class="mt-4 text-[10px] font-bold bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded flex items-center gap-2 transition shadow-md uppercase">
+                        <i class="fas fa-plus-circle"></i> Iniciar Intervenção
+                    </button>
+                </div>`;
+            globalIdx++;
+        });
+    }
 
-                equipsFr.forEach(eq => {
-                    const logsEq = logs.filter(l => l.equip === eq);
-                    let minParado = 0;
-                    
-                    logsEq.forEach(l => {
-                        if (l.h_ini !== '-') {
-                            let d = (new Date(`2000-01-01T${l.h_fim}`) - new Date(`2000-01-01T${l.h_ini}`)) / 60000;
-                            minParado += d < 0 ? d + 1440 : d;
-                        }
-                    });
+    // Após renderizar o esqueleto, carrega o que estava salvo
+    carregarProgresso();
+    
+    // Adiciona o evento de salvar em qualquer mudança no container de equipamentos
+    container.addEventListener('input', salvarProgresso);
+    container.addEventListener('change', salvarProgresso);
+}
 
-                    if (minParado === 0 && logsEq[0].status !== 'Disponível') minParado = 480;
-                    let dfEq = Math.max(0, ((480 - minParado) / 480) * 100);
-                    somaDF += dfEq;
-                    
-                    corpoFrota += `*${eq}* (${logsEq[0].status}) | DF: ${dfEq.toFixed(1)}% ${dfEq >= meta ? '🟢' : '🔴'}\n`;
-                    
-                    if(logsEq.length === 1 && logsEq[0].h_ini === '-' && logsEq[0].motivo !== '-') {
-                        corpoFrota += ` └ 🗒️ *Motivo Status:* ${logsEq[0].motivo}\n`;
-                    }
+function addParada(idx) {
+    const container = document.getElementById(`paradas-${idx}`);
+    const div = document.createElement('div');
+    div.className = "bg-slate-900 p-4 rounded-lg border-l-4 border-amber-500 relative mt-2 parada-item";
+    div.innerHTML = `
+        <button type="button" onclick="this.parentElement.remove(); salvarProgresso()" class="absolute top-2 right-2 text-slate-500 hover:text-red-500"><i class="fas fa-trash"></i></button>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+            <div><label class="text-[9px] font-bold text-slate-500 uppercase">Início</label>
+            <input type="time" class="h-ini w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs"></div>
+            <div><label class="text-[9px] font-bold text-slate-500 uppercase">Fim</label>
+            <input type="time" class="h-fim w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs"></div>
+            <div><label class="text-[9px] font-bold text-slate-500 uppercase">Horímetro</label>
+            <input type="number" step="0.1" class="horimetro w-full p-2 bg-slate-800 border border-slate-700 rounded text-white text-xs" placeholder="0.0"></div>
+        </div>
+        <select class="maint-status w-full p-2 mb-2 bg-slate-800 border border-slate-700 rounded text-white text-[10px]">
+            <option value="Concluído">✅ Concluído</option>
+            <option value="Em Diagnóstico">🔍 Em Diagnóstico</option>
+            <option value="Em Execução">🛠️ Em Execução</option>
+            <option value="Aguardando Peça">📦 Aguardando Peça</option>
+        </select>
+        <div class="grid grid-cols-1 gap-2">
+            <input type="text" class="motivo p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Motivo da Parada *">
+            <input type="text" class="causa p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Causa Aparente *">
+            <input type="text" class="acao p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Ação Imediata *">
+            <textarea class="obs p-2 bg-slate-800 border border-slate-700 rounded text-[11px] text-white" placeholder="Observações Complementares"></textarea>
+        </div>`;
+    container.appendChild(div);
+    salvarProgresso();
+    return div;
+}
 
-                    logsEq.forEach(l => {
-                        if (l.h_ini !== '-') {
-                            let linhaHor = l.horimetro !== "-" ? ` | ⚙️ H: ${l.horimetro}` : "";
-                            corpoFrota += ` └ ⏱️ ${l.h_ini}-${l.h_fim}${linhaHor} | ${l.maint_status}\n`;
-                            corpoFrota += ` └ ⚠️ Motivo: ${l.motivo}\n`;
-                            corpoFrota += ` └ 🔍 Causa: ${l.causa}\n`;
-                            corpoFrota += ` └ ⚡ Ação: ${l.acao}\n`;
-                            if (l.obs !== "N/A") corpoFrota += ` └ 🗒️ Obs: ${l.obs}\n`;
-                        }
-                    });
-                });
+// ... (Mantenha as funções toggleMotivoStatus, estaNoRange, gerarWhats e enviarTudo conforme seu original) ...
 
-                let mediaFrota = somaDF / equipsFr.length;
-                msg += `🔹 *FROTA: ${fr}*\n*MÉDIA DF: ${mediaFrota.toFixed(1)}%* (Meta: ${meta}%)\n`;
-                msg += corpoFrota + `\n`;
-            });
+// No final do seu enviarTudo(), após o sucesso, limpe o cache:
+// localStorage.removeItem('relatorio_operacional_cache');
 
-            window.open("https://api.whatsapp.com/send?text=" + encodeURIComponent(msg));
-        }
-
-        window.onload = renderizar;
-    </script>
-
-    <script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
-</body>
+window.onload = () => {
+    document.getElementById('dataTurno').valueAsDate = new Date();
+    renderizar();
+    
+    // Salvar cabeçalho quando mudar
+    ['dataTurno', 'turno', 'letra', 'operador'].forEach(id => {
+        document.getElementById(id).addEventListener('input', salvarProgresso);
+    });
+};
 
 </html>
+
 
